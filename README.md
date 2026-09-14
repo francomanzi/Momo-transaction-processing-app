@@ -1,115 +1,133 @@
+# MoMo Transaction Processing App
+
 ## Project Description
 
-This project processes Mobile Money (MoMo) SMS transaction data delivered as XML.
-The pipeline parses the raw XML, cleans and normalizes the records (amounts, dates,
-phone numbers), categorizes each transaction, and loads the results into a relational
-(SQLite) database. A lightweight frontend dashboard (with an optional FastAPI backend)
-then visualizes the processed data — transaction volumes, categories, and trends —
-so the team can analyze MoMo usage patterns.
+This project designs and implements the **database foundation** for a Mobile
+Money (MoMo) SMS transaction processing system. The source data is
+`modified_sms_v2.xml` (1,693 MTN MoMo SMS messages). This repo (Week 2)
+delivers:
 
-**Goals for this phase:**
-- Set up a shared team repository and workflow
-- Define the high-level system architecture
-- Organize the project structure
-- Set up an Agile task board to track work
+- A **relational MySQL database** (`momo_sms_system`) — ERD, DDL, constraints,
+  indexes and sample data built from the transactional SMS patterns
+- **JSON data models** for every entity plus a documented SQL→JSON mapping for
+  future API serialization
+- **Security & accuracy rules** — least-privilege DB accounts, PII masking
+  views, immutability/audit triggers
+- **Tested CRUD and analytical queries** with documented outputs
+- A **database design document** (ERD, rationale, data dictionary, sample
+  queries)
+
+The Week-1 scaffolding (`etl/`, `api/`, `tests/`) is reserved for later
+weeks of the project.
 
 ## Team Members
 
 | Name | GitHub Username | Role |
 |------|-----------------|------|
-| [Divin Franco Manzi] | [@francomanzi] | [System Architecture/ Diagram|
-| [Peace Maureen Umutesi] | [@umaureen] | [Scrum Lead ] |
-| [Alda Gatakokabasinga]| [@alda_gatako] | [ Project Coordinator] |
+| [Divin Franco Manzi] | [@francomanzi] | System Architecture / Diagram |
+| [Peace Maureen Umutesi] | [@umaureen] | Scrum Lead |
+| [Alda Gatakokabasinga] | [@alda_gatako] | Project Coordinator |
 
-## System Architecture
+## Database Design (6 Entities)
 
-The high-level architecture diagram is included in the repo:
-[`docs/architecture_diagram.png`](./docs/architecture_diagram.png)
+```
+Users ────────────────┐
+                      │ (M:N)
+Transactions ─────────┼─ Transaction_Participants (junction)
+   │                   │
+   ├─ Transaction_Categories
+   └─ Raw_SMS_Log
+System_Logs ─────────┘
+```
 
-Editable design source Draw.io: **https://drive.google.com/file/d/1ML9-3iCQms8ZGTU5O4qRLNqxpDAq4V4_/view?usp=sharing**
+| Entity | Purpose |
+|---|---|
+| `Users` | Customers, agents, merchants referenced by transactions |
+| `Transaction_Categories` | Reference list of 10 MoMo transaction types |
+| `Raw_SMS_Log` | Immutable staging table of every ingested SMS |
+| `Transactions` | Core fact table: one confirmed/failed/reversed transaction |
+| `Transaction_Participants` | Junction table resolving Users↔Transactions M:N with roles |
+| `System_Logs` | ETL pipeline processing log for traceability |
 
-**Overview of components:**
-- **Input:** Raw MoMo SMS XML data (`data/raw/momo.xml`)
-- **XML Parser** (`etl/parse_xml.py`): reads the raw XML; valid records continue down the pipeline, invalid/unparseable records are written to **Dead Letter** (`logs/dead_letter/`), and all parsing activity is written to **ETL Logging** (`etl.log`)
-- **Clean & Normalize** (`etl/clean_normalize.py`): standardizes amounts, dates, and phone numbers
-- **Categorization** (`etl/categorize.py`): classifies each transaction (Transfer, Payment, Withdrawal, Airtime)
-- **SQLite Database** (`data/db.sqlite3`): stores transactions, categories, amounts, and dates
-- **FastAPI** (`api/app.py`): exposes `/transactions` and `/analytics` endpoints on top of the database
-- **Web Dashboard** (`index.html`, `web/`): renders charts, tables, analytics, and transaction data
-- **User / Analyst:** views and interacts with the dashboard in a browser
+- **ERD diagram:** `docs/erd_diagram.png`
+- **Design rationale:** `docs/erd_design_rationale.md` (200–300 words)
+- **Data dictionary:** `docs/data_dictionary.md`
+- **Draw.io/Google Drawings spec:** `docs/erd_google_drawings_spec.md`
+
+## Deliverables (Week 2 — database foundation)
+
+| Assignment task | Where |
+|---|---|
+| 1. ERD with entities, PK/FK, cardinality, M:N junction | `docs/erd_diagram.png`, `docs/erd_design_rationale.md` |
+| 2. MySQL schema: DDL + constraints + indexes + sample data | `database/database_setup.sql` |
+| 2. CRUD testing with documented results | `database/crud_test_queries.sql`, `database/crud_test_results.md` |
+| 3. JSON schemas + nested transaction example | `examples/json_schemas.json` |
+| 3. SQL→JSON mapping documentation | `examples/sql_to_json_mapping.md` |
+| 4. Database design document (PDF) | `docs/design_document.pdf` |
 
 ## Project Structure
 
-See the repository directory layout below:
-
 ```
 ├── README.md
-├── .env.example
-├── requirements.txt
-├── index.html
-├── web/
-│   ├── styles.css
-│   ├── chart_handler.js
-│   └── assets/
-├── data/
-│   ├── raw/            # git-ignored input XML
-│   ├── processed/
-│   ├── db.sqlite3
-│   └── logs/
-├── etl/
-│   ├── config.py
-│   ├── parse_xml.py
-│   ├── clean_normalize.py
-│   ├── categorize.py
-│   ├── load_db.py
-│   └── run.py
-├── api/                # optional/bonus
-│   ├── app.py
-│   ├── db.py
-│   └── schemas.py
+├── database/
+│   ├── database_setup.sql       # DDL + constraints + indexes + sample data (5+/table)
+│   ├── security_rules.sql       # least-privilege users, masking view, triggers
+│   ├── advanced_queries.sql     # analytical queries for the design document
+│   ├── crud_test_queries.sql    # CRUD + constraint enforcement tests
+│   └── *_results.md             # documented query outputs
+├── docs/
+│   ├── erd_diagram.png
+│   ├── erd_design_rationale.md
+│   ├── erd_google_drawings_spec.md
+│   ├── data_dictionary.md
+│   └── design_document.pdf
+├── examples/
+│   ├── json_schemas.json        # JSON Schema for every entity + complex transaction
+│   └── sql_to_json_mapping.md   # SQL→JSON serialization guide
+├── etl/                        # Week-1 scaffolding (implementation in a later week)
+├── api/                        # Week-1 scaffolding
+├── tests/                      # Week-1 scaffolding
 ├── scripts/
-│   ├── run_etl.sh
-│   ├── export_json.sh
-│   └── serve_frontend.sh
-└── tests/
-    ├── test_parse_xml.py
-    ├── test_clean_normalize.py
-    └── test_categorize.py
+├── web/
+└── requirements.txt            # reserved for later weeks
 ```
+
+## Getting Started
+
+### 1. Prerequisites
+
+- MySQL 8.0+ (developed and verified on MySQL 26.7)
+
+### 2. Set up the database
+
+```bash
+mysql -u root -p < database/database_setup.sql   # creates momo_sms_system + sample data
+mysql -u root -p < database/security_rules.sql   # app users, masking view, triggers
+```
+
+### 3. Explore the data
+
+```bash
+mysql -u root -p momo_sms_system < database/advanced_queries.sql
+mysql -u root -p momo_sms_system < database/crud_test_queries.sql
+```
+
+### 4. Security accounts created
+
+| User | Password (dev only) | Privileges |
+|---|---|---|
+| `momo_readonly` | `Maureen123!` | SELECT on all tables + masking view |
+| `momo_etl` | `Maureen123!` | INSERT/UPDATE/SELECT (no DELETE) |
+| `momo_admin` | `Maureen123!` | Full control |
+
+> **Note:** `security_rules.sql` starts by recreating these users for
+> idempotence; if a user already exists in your server it is dropped first
+> only when it is owned by this script's marker comment.
 
 ## Scrum / Task Board
 
-We are tracking work using **GitHub Projects**
+Tracked on **GitHub Projects**
 
 **Board link: https://github.com/users/francomanzi/projects/3**
 
 Board columns: `To Do` → `In Progress` → `Done`
-
-Initial tasks include:
-- Set up team GitHub repository & add collaborators
-- Create high-level architecture diagram
-- Draft ETL parsing logic for XML input
-- Design SQLite schema for transactions
-- Set up frontend dashboard skeleton
-- Research MoMo SMS categorization rules
-
-## Getting Started
-
-```bash
-# 1. Clone the repo
-git clone https://github.com/francomanzi/Momo-transaction-processing-app.git
-cd Momo-transaction-processing-app
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Configure environment
-cp .env.example .env
-
-# 4. Run the ETL pipeline
-python etl/run.py --xml data/raw/momo.xml
-
-# 5. Serve the frontend
-bash scripts/serve_frontend.sh
-# then open http://localhost:8000
-```# Momo-[Otransaction-proc[Oessing-appOB
