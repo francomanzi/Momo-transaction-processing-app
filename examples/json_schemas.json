@@ -1,0 +1,285 @@
+{
+  "schemas": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "A MoMo customer, agent, or merchant identified in the SMS text. One row of the Users table.",
+      "properties": {
+        "user_id": { "type": "integer", "description": "PK, Users.user_id" },
+        "full_name": { "type": "string", "maxLength": 100 },
+        "phone_number": { "type": "string", "maxLength": 15 },
+        "user_category": { "type": "string", "enum": ["CUSTOMER", "AGENT", "MERCHANT"] },
+        "national_id_masked": { "type": ["string", "null"], "maxLength": 20 },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["user_id", "full_name", "phone_number", "user_category"]
+    },
+
+    "TransactionCategory": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TransactionCategory",
+      "type": "object",
+      "description": "One of the ten MoMo transaction classifications (payment, transfer, deposit, ...). One row of the Transaction_Categories table.",
+      "properties": {
+        "category_id": { "type": "integer", "description": "PK, Transaction_Categories.category_id" },
+        "category_code": { "type": "string", "maxLength": 30 },
+        "category_name": { "type": "string", "maxLength": 60 },
+        "description": { "type": ["string", "null"], "maxLength": 255 },
+        "is_debit": { "type": "boolean" }
+      },
+      "required": ["category_id", "category_code", "category_name", "is_debit"]
+    },
+
+    "Participant": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Participant",
+      "type": "object",
+      "description": "One row of the Transaction_Participants junction joined with its User. Only nested inside a Transaction, never standalone in the API.",
+      "properties": {
+        "participant_id": { "type": "integer", "description": "PK, Transaction_Participants.participant_id" },
+        "participant_role": { "type": "string", "enum": ["SENDER", "RECEIVER", "AGENT"] },
+        "user": { "$ref": "#/schemas/User" }
+      },
+      "required": ["participant_id", "participant_role", "user"]
+    },
+
+    "RawSMSLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RawSMSLog",
+      "type": "object",
+      "description": "A verbatim ingested SMS before parsing. One row of the Raw_SMS_Log table.",
+      "properties": {
+        "sms_id": { "type": "integer", "description": "PK, Raw_SMS_Log.sms_id" },
+        "sender_address": { "type": "string", "maxLength": 30 },
+        "raw_body": { "type": "string" },
+        "sms_date": { "type": "string", "format": "date-time" },
+        "is_parsed": { "type": "boolean" }
+      },
+      "required": ["sms_id", "sender_address", "raw_body", "sms_date", "is_parsed"]
+    },
+
+    "SystemLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "SystemLog",
+      "type": "object",
+      "description": "An ETL pipeline processing event. One row of the System_Logs table.",
+      "properties": {
+        "log_id": { "type": "integer", "description": "PK, System_Logs.log_id" },
+        "related_sms_id": { "type": ["integer", "null"], "description": "FK, Raw_SMS_Log.sms_id" },
+        "process_step": { "type": "string", "maxLength": 40 },
+        "status": { "type": "string", "enum": ["SUCCESS", "FAILED"] },
+        "message": { "type": ["string", "null"], "maxLength": 255 },
+        "logged_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["log_id", "process_step", "status", "logged_at"]
+    },
+
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "A confirmed, failed, or reversed MoMo transaction. Category and participants are nested in for API convenience (denormalized on read, normalized on write — see sql_to_json_mapping.md).",
+      "properties": {
+        "transaction_id": { "type": "integer", "description": "PK, Transactions.transaction_id" },
+        "financial_tx_id": { "type": ["string", "null"], "maxLength": 30 },
+        "external_tx_id": { "type": ["string", "null"], "maxLength": 30 },
+        "amount": { "type": "number", "exclusiveMinimum": 0 },
+        "fee": { "type": "number", "minimum": 0 },
+        "balance_after": { "type": ["number", "null"] },
+        "transaction_date": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["COMPLETED", "FAILED", "REVERSED"] },
+        "category": { "$ref": "#/schemas/TransactionCategory" },
+        "participants": {
+          "type": "array",
+          "items": { "$ref": "#/schemas/Participant" },
+          "minItems": 1
+        },
+        "source_sms": {
+          "description": "Nested for traceability; omitted from lightweight list responses",
+          "oneOf": [ { "$ref": "#/schemas/RawSMSLog" }, { "type": "null" } ]
+        }
+      },
+      "required": ["transaction_id", "amount", "fee", "transaction_date", "status", "category", "participants"]
+    }
+  },
+
+  "examples": {
+
+    "user_example": {
+      "user_id": 1,
+      "full_name": "Abebe Chala Chebudie",
+      "phone_number": "250795963036",
+      "user_category": "CUSTOMER",
+      "national_id_masked": "36521838",
+      "created_at": "2024-05-01T00:00:00Z"
+    },
+
+    "transaction_category_example": {
+      "category_id": 7,
+      "category_code": "AGENT_WITHDRAWAL",
+      "category_name": "Agent Cash Withdrawal",
+      "description": "Cash withdrawn from an agent",
+      "is_debit": true
+    },
+
+    "raw_sms_log_example": {
+      "sms_id": 5,
+      "sender_address": "M-Money",
+      "raw_body": "You Abebe Chala CHEBUDIE (*********036) have via agent: Agent Sophia (250790777779), withdrawn 20000 RWF from your mobile money account: 36521838 at 2024-11-23 13:23:44.",
+      "sms_date": "2024-11-23T13:23:51Z",
+      "is_parsed": true
+    },
+
+    "system_log_example": {
+      "log_id": 5,
+      "related_sms_id": 5,
+      "process_step": "LOAD",
+      "status": "SUCCESS",
+      "message": "Inserted agent_withdrawal transaction and 2 participants",
+      "logged_at": "2024-11-23T13:24:02Z"
+    },
+
+    "simple_transaction_example": {
+      "transaction_id": 2,
+      "financial_tx_id": "73214484437",
+      "external_tx_id": null,
+      "amount": 1000.00,
+      "fee": 0.00,
+      "balance_after": 1000.00,
+      "transaction_date": "2024-05-10T16:31:39Z",
+      "status": "COMPLETED",
+      "category": {
+        "category_id": 3,
+        "category_code": "MERCHANT_PAYMENT",
+        "category_name": "Merchant Payment",
+        "is_debit": true
+      },
+      "participants": [
+        { "participant_id": 3, "participant_role": "SENDER",   "user": { "user_id": 1, "full_name": "Abebe Chala Chebudie", "phone_number": "250795963036", "user_category": "CUSTOMER" } },
+        { "participant_id": 4, "participant_role": "RECEIVER", "user": { "user_id": 2, "full_name": "Jane Smith", "phone_number": "250789013000", "user_category": "CUSTOMER" } }
+      ]
+    },
+
+    "complex_transaction_full_example": {
+      "_comment": "This is the required 'complex transaction JSON with all related data' — an agent withdrawal, 3-party transaction (sender + agent), including its full category, both participants with full user detail, and full source SMS + processing log for end-to-end traceability.",
+      "transaction_id": 5,
+      "financial_tx_id": null,
+      "external_tx_id": null,
+      "amount": 20000.00,
+      "fee": 0.00,
+      "balance_after": null,
+      "transaction_date": "2024-11-23T13:23:44Z",
+      "status": "COMPLETED",
+      "category": {
+        "category_id": 7,
+        "category_code": "AGENT_WITHDRAWAL",
+        "category_name": "Agent Cash Withdrawal",
+        "description": "Cash withdrawn from an agent",
+        "is_debit": true
+      },
+      "participants": [
+        {
+          "participant_id": 8,
+          "participant_role": "SENDER",
+          "user": {
+            "user_id": 1,
+            "full_name": "Abebe Chala Chebudie",
+            "phone_number": "250795963036",
+            "user_category": "CUSTOMER",
+            "national_id_masked": "36521838",
+            "created_at": "2024-05-01T00:00:00Z"
+          }
+        },
+        {
+          "participant_id": 9,
+          "participant_role": "AGENT",
+          "user": {
+            "user_id": 7,
+            "full_name": "Agent Sophia",
+            "phone_number": "250790777779",
+            "user_category": "AGENT",
+            "national_id_masked": null,
+            "created_at": "2024-05-01T00:00:00Z"
+          }
+        }
+      ],
+      "source_sms": {
+        "sms_id": 5,
+        "sender_address": "M-Money",
+        "raw_body": "You Abebe Chala CHEBUDIE (*********036) have via agent: Agent Sophia (250790777779), withdrawn 20000 RWF from your mobile money account: 36521838 at 2024-11-23 13:23:44.",
+        "sms_date": "2024-11-23T13:23:51Z",
+        "is_parsed": true
+      },
+      "processing_logs": [
+        {
+          "log_id": 5,
+          "related_sms_id": 5,
+          "process_step": "LOAD",
+          "status": "SUCCESS",
+          "message": "Inserted agent_withdrawal transaction and 2 participants",
+          "logged_at": "2024-11-23T13:24:02Z"
+        }
+      ]
+    },
+
+    "api_response_get_transaction_by_id": {
+      "_comment": "Example response for GET /api/v1/transactions/5",
+      "success": true,
+      "data": {
+        "transaction_id": 5,
+        "financial_tx_id": null,
+        "amount": 20000.00,
+        "fee": 0.00,
+        "transaction_date": "2024-11-23T13:23:44Z",
+        "status": "COMPLETED",
+        "category": { "category_code": "AGENT_WITHDRAWAL", "category_name": "Agent Cash Withdrawal" },
+        "participants": [
+          { "participant_role": "SENDER", "user": { "user_id": 1, "full_name": "Abebe Chala Chebudie", "phone_number": "250795963036" } },
+          { "participant_role": "AGENT",  "user": { "user_id": 7, "full_name": "Agent Sophia", "phone_number": "250790777779" } }
+        ]
+      }
+    },
+
+    "api_response_list_transactions_by_user": {
+      "_comment": "Example response for GET /api/v1/users/1/transactions?limit=3 — a lighter, list-friendly shape without full nested user objects per participant",
+      "success": true,
+      "meta": { "user_id": 1, "count": 3, "page": 1, "page_size": 3 },
+      "data": [
+        {
+          "transaction_id": 1,
+          "category_code": "INCOMING_MONEY",
+          "amount": 2000.00,
+          "fee": 0.00,
+          "transaction_date": "2024-05-10T16:30:51Z",
+          "status": "COMPLETED",
+          "counterparty": { "full_name": "Jane Smith", "participant_role": "SENDER" }
+        },
+        {
+          "transaction_id": 2,
+          "category_code": "MERCHANT_PAYMENT",
+          "amount": 1000.00,
+          "fee": 0.00,
+          "transaction_date": "2024-05-10T16:31:39Z",
+          "status": "COMPLETED",
+          "counterparty": { "full_name": "Jane Smith", "participant_role": "RECEIVER" }
+        },
+        {
+          "transaction_id": 4,
+          "category_code": "TRANSFER_SEND",
+          "amount": 10000.00,
+          "fee": 100.00,
+          "transaction_date": "2024-05-11T20:34:47Z",
+          "status": "COMPLETED",
+          "counterparty": { "full_name": "Samuel Carter", "participant_role": "RECEIVER" }
+        }
+      ]
+    },
+
+    "api_response_error_example": {
+      "_comment": "Example error response, e.g. GET /api/v1/transactions/9999",
+      "success": false,
+      "error": { "code": "TRANSACTION_NOT_FOUND", "message": "No transaction exists with id 9999" }
+    }
+  }
+}
