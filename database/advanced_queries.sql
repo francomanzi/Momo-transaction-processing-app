@@ -52,4 +52,8 @@ JOIN Transaction_Categories tc ON tc.category_id = t.category_id
 JOIN Transaction_Participants tp ON tp.transaction_id = t.transaction_id
 GROUP BY t.transaction_id
 HAVING participant_count >= 2
-ORDER BY participant_count DESC;
+ORDER BY participant_count DESC;   -- Note: transaction_id 3 doesn't appear here because it has only 1
+   -- participant. It's a Bank Deposit, where money enters from outside
+   -- the system (a bank), so there's no second MoMo user to record as SENDER.
+
+-- Note: transaction_id 3 is excluded here because it only has 1 participant.

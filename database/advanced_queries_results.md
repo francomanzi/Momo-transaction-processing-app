@@ -41,13 +41,11 @@ status  | count | pct
 SUCCESS | 5     | 83.3
 FAILED  | 1     | 16.7
 ```
-The one FAILED log entry is the OTP message correctly identified as
-non-transactional and excluded from `Transactions` — this is expected
-behavior, not a pipeline bug.
+   A 16.7% failure rate sounds high at first, but since there's only 6 total log entries, that's just 1 message — not necessarily a systemic problem.
 
 ## 5. Multi-party transaction check
 ```
-transaction_id | category_name          | participant_count
+transaction_id | category_name        | participant_count
 1              | Incoming Money         | 2
 2              | Merchant Payment       | 2
 4              | Mobile Transfer        | 2

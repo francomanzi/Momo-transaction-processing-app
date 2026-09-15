@@ -49,7 +49,9 @@ WHERE transaction_id NOT IN (SELECT transaction_id FROM Transactions);
 -- ---------- CONSTRAINT ENFORCEMENT TESTS (each of these should fail/reject) ----------
 INSERT INTO Transactions (category_id, amount, fee, transaction_date)
 VALUES (1, -500.00, 0.00, '2025-02-01 10:00:00');            -- violates chk_tx_amount_positive
-
+-- This test reuses Jane Smith's real phone number under a fake name
+-- ("Fake Jane"), confirming that uq_users_phone blocks duplicates by
+-- phone number specifically, not just by matching name.
 INSERT INTO Users (full_name, phone_number)
 VALUES ('Fake Jane', '250789013000');                        -- violates uq_users_phone
 
