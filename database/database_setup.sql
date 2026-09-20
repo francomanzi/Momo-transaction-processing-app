@@ -23,12 +23,12 @@ CREATE TABLE Users (
     user_id             INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Unique ID for a person/agent/merchant found in the SMS text',
     full_name           VARCHAR(100) NOT NULL COMMENT 'Name as it appears in the SMS body',
     phone_number        VARCHAR(15)  NOT NULL COMMENT 'MSISDN, may be partially masked in source data',
-    user_category       ENUM('CUSTOMER','AGENT','MERCHANT') NOT NULL DEFAULT 'CUSTOMER'
+    user_category       VARCHAR(20) NOT NULL DEFAULT 'CUSTOMER'
                             COMMENT 'Role this identity plays in the MoMo ecosystem',
-    national_id_masked  VARCHAR(20)  NULL COMMENT 'Masked national ID / account ref when present in SMS',
     created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'When this identity was first seen',
     CONSTRAINT uq_users_phone UNIQUE (phone_number),
-    CONSTRAINT chk_users_phone_len CHECK (CHAR_LENGTH(phone_number) >= 6)
+    CONSTRAINT chk_users_phone_len CHECK (CHAR_LENGTH(phone_number) >= 6),
+    CONSTRAINT chk_user_category CHECK (user_category IN ('CUSTOMER','AGENT','MERCHANT'))
 ) ENGINE=InnoDB COMMENT='Customers, agents and merchants referenced by MoMo transactions';
 
 -- ---------------------------------------------------------------------
@@ -63,23 +63,19 @@ CREATE TABLE Raw_SMS_Log (
 -- ---------------------------------------------------------------------
 CREATE TABLE Transactions (
     transaction_id      INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Unique ID for a transaction',
-    category_id         INT NOT NULL COMMENT 'FK -> Transaction_Categories.category_id',
-    financial_tx_id     VARCHAR(30) NULL COMMENT 'MTN "Financial Transaction Id" / TxId extracted from SMS',
-    external_tx_id      VARCHAR(30) NULL COMMENT 'External transaction id, when present (e.g. data bundle purchases)',
     amount              DECIMAL(12,2) NOT NULL COMMENT 'Transaction amount in RWF',
+    transaction_time    DATETIME NOT NULL COMMENT 'Date/time the transaction was completed',
+    processed_by        VARCHAR(30) NULL COMMENT 'Who processed the transaction: SYSTEM, AGENT, or agent name from the SMS',
+    status              VARCHAR(20) NOT NULL DEFAULT 'COMPLETED'
+                            COMMENT 'Final state of the transaction',
+    category_id         INT NOT NULL COMMENT 'FK -> Transaction_Categories.category_id',
     fee                 DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT 'Fee charged for the transaction in RWF',
     balance_after       DECIMAL(12,2) NULL COMMENT 'Account balance immediately after the transaction',
-    transaction_date    DATETIME NOT NULL COMMENT 'Date/time the transaction was completed',
-    status              ENUM('COMPLETED','FAILED','REVERSED') NOT NULL DEFAULT 'COMPLETED'
-                            COMMENT 'Final state of the transaction',
-    source_sms_id       INT NULL COMMENT 'FK -> Raw_SMS_Log.sms_id, traceability back to the raw message',
     CONSTRAINT fk_tx_category FOREIGN KEY (category_id) REFERENCES Transaction_Categories(category_id)
         ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT fk_tx_sms FOREIGN KEY (source_sms_id) REFERENCES Raw_SMS_Log(sms_id)
-        ON UPDATE CASCADE ON DELETE SET NULL,
-    CONSTRAINT uq_tx_financial_id UNIQUE (financial_tx_id),
     CONSTRAINT chk_tx_amount_positive CHECK (amount > 0),
-    CONSTRAINT chk_tx_fee_nonnegative CHECK (fee >= 0)
+    CONSTRAINT chk_tx_fee_nonnegative CHECK (fee >= 0),
+    CONSTRAINT chk_tx_status CHECK (status IN ('COMPLETED','FAILED','REVERSED'))
 ) ENGINE=InnoDB COMMENT='Core fact table of confirmed/failed/reversed MoMo transactions';
 
 -- ---------------------------------------------------------------------
@@ -91,12 +87,13 @@ CREATE TABLE Transaction_Participants (
     participant_id      INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Unique ID for a participation record',
     transaction_id      INT NOT NULL COMMENT 'FK -> Transactions.transaction_id',
     user_id             INT NOT NULL COMMENT 'FK -> Users.user_id',
-    participant_role    ENUM('SENDER','RECEIVER','AGENT') NOT NULL COMMENT 'Role this user plays in the transaction',
+    participant_role    VARCHAR(20) NOT NULL COMMENT 'Role this user plays in the transaction',
     CONSTRAINT fk_participant_tx FOREIGN KEY (transaction_id) REFERENCES Transactions(transaction_id)
         ON UPDATE CASCADE ON DELETE CASCADE,
     CONSTRAINT fk_participant_user FOREIGN KEY (user_id) REFERENCES Users(user_id)
         ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT uq_participant_role UNIQUE (transaction_id, user_id, participant_role)
+    CONSTRAINT uq_participant_tx_user UNIQUE (transaction_id, user_id),
+    CONSTRAINT chk_participant_role CHECK (participant_role IN ('SENDER','RECEIVER','AGENT'))
 ) ENGINE=InnoDB COMMENT='Junction table resolving the M:N relationship between Users and Transactions';
 
 -- ---------------------------------------------------------------------
@@ -107,18 +104,19 @@ CREATE TABLE System_Logs (
     log_id          INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Unique ID for a log entry',
     related_sms_id  INT NULL COMMENT 'FK -> Raw_SMS_Log.sms_id, the record being processed',
     process_step    VARCHAR(40) NOT NULL COMMENT 'ETL stage, e.g. PARSE, CATEGORIZE, LOAD',
-    status          ENUM('SUCCESS','FAILED') NOT NULL COMMENT 'Outcome of this processing step',
+    status          VARCHAR(10) NOT NULL COMMENT 'Outcome of this processing step (SUCCESS or FAILED)',
     message         VARCHAR(255) NULL COMMENT 'Detail message or error text',
     logged_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'When this log entry was written',
     CONSTRAINT fk_log_sms FOREIGN KEY (related_sms_id) REFERENCES Raw_SMS_Log(sms_id)
-        ON UPDATE CASCADE ON DELETE SET NULL
+        ON UPDATE CASCADE ON DELETE SET NULL,
+    CONSTRAINT chk_log_status CHECK (status IN ('SUCCESS','FAILED'))
 ) ENGINE=InnoDB COMMENT='ETL pipeline processing log for traceability and debugging';
 
 -- =====================================================================
 -- INDEXES — strategic, beyond what PK/UNIQUE already provide
 -- =====================================================================
 CREATE INDEX idx_users_phone            ON Users(phone_number);
-CREATE INDEX idx_tx_date                ON Transactions(transaction_date);
+CREATE INDEX idx_tx_time                ON Transactions(transaction_time);
 CREATE INDEX idx_tx_category            ON Transactions(category_id);
 CREATE INDEX idx_tx_status              ON Transactions(status);
 CREATE INDEX idx_participants_user      ON Transaction_Participants(user_id);
@@ -131,16 +129,16 @@ CREATE INDEX idx_logs_sms               ON System_Logs(related_sms_id);
 -- =====================================================================
 
 -- Users (account owner, 4 known contacts, 2 agents, 2 merchants) = 9 rows
-INSERT INTO Users (full_name, phone_number, user_category, national_id_masked) VALUES
-('Abebe Chala Chebudie', '250795963036', 'CUSTOMER', '36521838'),   -- the account owner
-('Jane Smith',           '250789013000', 'CUSTOMER', NULL),
-('Samuel Carter',        '250791666666', 'CUSTOMER', NULL),
-('Alex Doe',             '250790777777', 'CUSTOMER', NULL),
-('Robert Brown',         '250788999999', 'CUSTOMER', NULL),
-('Linda Green',          '250790777778', 'CUSTOMER', NULL),
-('Agent Sophia',         '250790777779', 'AGENT',    NULL),
-('IREMBO Ltd',           '250700000001', 'MERCHANT', NULL),
-('ESICIA LTD KPAY',      '250700000002', 'MERCHANT', NULL);
+INSERT INTO Users (full_name, phone_number, user_category) VALUES
+('Abebe Chala Chebudie', '250795963036', 'CUSTOMER'),   -- the account owner
+('Jane Smith',           '250789013000', 'CUSTOMER'),
+('Samuel Carter',        '250791666666', 'CUSTOMER'),
+('Alex Doe',             '250790777777', 'CUSTOMER'),
+('Robert Brown',         '250788999999', 'CUSTOMER'),
+('Linda Green',          '250790777778', 'CUSTOMER'),
+('Agent Sophia',         '250790777779', 'AGENT'),
+('IREMBO Ltd',           '250700000001', 'MERCHANT'),
+('ESICIA LTD KPAY',      '250700000002', 'MERCHANT');
 
 -- Transaction_Categories = 10 rows
 INSERT INTO Transaction_Categories (category_code, category_name, description, is_debit) VALUES
@@ -164,13 +162,13 @@ INSERT INTO Raw_SMS_Log (sender_address, raw_body, sms_date, is_parsed) VALUES
 ('M-Money', 'You Abebe Chala CHEBUDIE (*********036) have via agent: Agent Sophia (250790777779), withdrawn 20000 RWF from your mobile money account: 36521838 at 2024-11-23 13:23:44.', '2024-11-23 13:23:51', TRUE),
 ('M-Money', '<#> Dear Customer, your MTN MoMo application one-time password is :2476. MTN MoMo does not recommend that you share or expose your one-time password with anyone.', '2024-06-06 09:12:00', FALSE);
 
--- Transactions = 5 rows, each linked to its source SMS and category
-INSERT INTO Transactions (category_id, financial_tx_id, amount, fee, balance_after, transaction_date, status, source_sms_id) VALUES
-((SELECT category_id FROM Transaction_Categories WHERE category_code='INCOMING_MONEY'),   '76662021700', 2000.00,   0.00, 2000.00,  '2024-05-10 16:30:51', 'COMPLETED', 1),
-((SELECT category_id FROM Transaction_Categories WHERE category_code='MERCHANT_PAYMENT'), '73214484437', 1000.00,   0.00, 1000.00,  '2024-05-10 16:31:39', 'COMPLETED', 2),
-((SELECT category_id FROM Transaction_Categories WHERE category_code='BANK_DEPOSIT'),     NULL,          40000.00,  0.00, 40400.00, '2024-05-11 18:43:49', 'COMPLETED', 3),
-((SELECT category_id FROM Transaction_Categories WHERE category_code='TRANSFER_SEND'),    NULL,          10000.00, 100.00, 28300.00, '2024-05-11 20:34:47', 'COMPLETED', 4),
-((SELECT category_id FROM Transaction_Categories WHERE category_code='AGENT_WITHDRAWAL'), NULL,          20000.00,  0.00, NULL,      '2024-11-23 13:23:44', 'COMPLETED', 5);
+-- Transactions = 5 rows
+INSERT INTO Transactions (category_id, amount, fee, balance_after, transaction_time, status, processed_by) VALUES
+((SELECT category_id FROM Transaction_Categories WHERE category_code='INCOMING_MONEY'),   2000.00,   0.00, 2000.00,  '2024-05-10 16:30:51', 'COMPLETED', 'SYSTEM'),
+((SELECT category_id FROM Transaction_Categories WHERE category_code='MERCHANT_PAYMENT'), 1000.00,   0.00, 1000.00,  '2024-05-10 16:31:39', 'COMPLETED', 'SYSTEM'),
+((SELECT category_id FROM Transaction_Categories WHERE category_code='BANK_DEPOSIT'),     40000.00,  0.00, 40400.00, '2024-05-11 18:43:49', 'COMPLETED', 'SYSTEM'),
+((SELECT category_id FROM Transaction_Categories WHERE category_code='TRANSFER_SEND'),    10000.00, 100.00, 28300.00, '2024-05-11 20:34:47', 'COMPLETED', 'SYSTEM'),
+((SELECT category_id FROM Transaction_Categories WHERE category_code='AGENT_WITHDRAWAL'), 20000.00,  0.00, NULL,      '2024-11-23 13:23:44', 'COMPLETED', 'AGENT');
 
 -- Transaction_Participants = 8 rows covering all 5 transactions
 INSERT INTO Transaction_Participants (transaction_id, user_id, participant_role) VALUES
@@ -186,9 +184,9 @@ INSERT INTO Transaction_Participants (transaction_id, user_id, participant_role)
 
 -- System_Logs = 6 rows (5 successful parses + 1 skip for the OTP message)
 INSERT INTO System_Logs (related_sms_id, process_step, status, message) VALUES
-(1, 'PARSE',       'SUCCESS', 'Extracted incoming_money transaction 76662021700'),
-(2, 'PARSE',       'SUCCESS', 'Extracted merchant_payment transaction 73214484437'),
-(3, 'PARSE',       'SUCCESS', 'Extracted bank_deposit transaction, no financial_tx_id present'),
+(1, 'PARSE',       'SUCCESS', 'Extracted incoming_money transaction'),
+(2, 'PARSE',       'SUCCESS', 'Extracted merchant_payment transaction'),
+(3, 'PARSE',       'SUCCESS', 'Extracted bank_deposit transaction'),
 (4, 'CATEGORIZE',  'SUCCESS', 'Matched pattern TRANSFER_SEND via regex "transferred to"'),
 (5, 'LOAD',        'SUCCESS', 'Inserted agent_withdrawal transaction and 2 participants'),
 (6, 'PARSE',       'FAILED',  'SMS classified as non-transactional (OTP) - skipped from Transactions');

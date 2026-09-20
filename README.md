@@ -28,26 +28,31 @@ weeks of the project.
 | [Peace Maureen Umutesi] | [@umaureen] | Scrum Lead |
 | [Alda Gatakokabasinga] | [@alda_gatako] | Project Coordinator |
 
-## Contributors (individual technical contributions)
-
-| Contributor | Responsibility | Files |
-|---|---|---|
-| **Peace Maureen Umutesi** | SQL analysis + JSON modeling | `database/advanced_queries.sql`, `database/advanced_queries_results.md`, `database/crud_test_queries.sql`, `database/crud_test_results.md`, `examples/json_schemas.json`, `examples/sql_to_json_mapping.md` |
-| **Divin Franco Manzi** | Schema logic + security | `database/database_setup.sql`, `database/security_rules.sql`, `database/security_rules_test_results.md`, `docs/data_dictionary.md` |
-| **Franco Manzi & Peace Maureen Umutesi** (co-authored) | ERD, design document, project docs | `docs/erd_diagram.png`, `docs/erd_design_rationale.md`, `docs/erd_google_drawings_spec.md`, `docs/design_document.pdf`, `README.md`, `.gitignore` |
 
 These match the commit authorship in Git history.
+
+## AI USAGE
+
+We used AI as a supporting tool throughout the development and documentation process. It helped us:
+
+Come up with appropriate table names for the database design.
+Define and refine transaction statuses such as SUCCESS, PENDING, and FAILED.
+Define appropriate log levels such as INFO, WARNING, and ERROR.
+Improve and organize our Markdown documentation, including the README, Data Dictionary, Google Drawing Specification, and Design Document.
+Develop and refine the database constraints to ensure data integrity and consistency.
+Create test scenarios for validating the constraints and checking that the database behaves as expected.
+
+AI was used as a development and documentation assistant, while the final decisions, implementation, and validation were reviewed and made by the team.
 
 ## Database Design (6 Entities)
 
 ```
 Users ────────────────┐
-                      │ (M:N)
-Transactions ─────────┼─ Transaction_Participants (junction)
-   │                   │
+                      │ (M:N via Transaction_Participants)
+Transactions ─────────┘
    ├─ Transaction_Categories
-   └─ Raw_SMS_Log
-System_Logs ─────────┘
+System_Logs ────────────┐
+                       └─ Raw_SMS_Log
 ```
 
 | Entity | Purpose |

@@ -74,8 +74,12 @@ INSERT duplicate phone_number '250789013000'
                                                               ✔ uq_users_phone works
 
 INSERT participant_role = 'BYSTANDER'
--> ERROR 1265 (01000): Data truncated for column 'participant_role' at row 1
-                                                              ✔ participant_role ENUM rejects bad value
+-> ERROR 3819 (HY000): Check constraint 'chk_participant_role' is violated.
+                                                              ✔ chk_participant_role rejects bad role
+
+INSERT (transaction_id, user_id) = (1, 1) again, role 'SENDER' (already RECEIVER in tx 1)
+-> ERROR 1062 (23000): Duplicate entry '1-1' for key 'participants.uq_participant_tx_user'
+                                                              ✔ uq_participant_tx_user blocks duplicate participation
 ```
 
-**Conclusion:** All four CRUD operations succeed as expected, the M:N junction table correctly reconstructs multi-party transactions, referential integrity (CASCADE/SET NULL) behaves correctly on delete, and all three tested constraints (positive amount, unique phone, valid participant role) correctly reject bad data.
+**Conclusion:** All four CRUD operations succeed as expected, the M:N junction table correctly reconstructs multi-party transactions, referential integrity (CASCADE/SET NULL) behaves correctly on delete, and all four tested constraints (positive amount, unique phone, valid participant role, no duplicate participation) correctly reject bad data.

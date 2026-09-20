@@ -16,15 +16,14 @@ Most tables map 1:1 to a flat JSON object with the same column names:
 
 ## 2. Denormalizing on read: Transactions
 
-The `Transactions` table itself only holds `category_id` and `source_sms_id` as
-foreign keys. When serialized for an API response, we **denormalize** by
-resolving those FKs into nested objects:
+The `Transactions` table itself only holds `category_id` as a foreign key
+(plus nullable free-text columns such as `processed_by`). When serialized for
+an API response, we **denormalize** by resolving that FK into a nested object:
 
 - `category_id` (INT FK) → full nested `category` object (id, code, name, is_debit)
-- `source_sms_id` (INT FK, nullable) → full nested `source_sms` object, or omitted/`null` in list views to keep payloads light
 
 This is a **read-time join**, not a schema change — the underlying SQL stays
-normalized (3NF); only the API response layer flattens the joins into nested
+normalized (3NF); only the API response layer flattens the join into nested
 JSON for client convenience. The mapping SQL for the full nested transaction is:
 
 ```sql
@@ -72,8 +71,8 @@ The schema defines two response shapes for the same underlying data,
 matching common API design practice:
 
 - **Detail view** (`api_response_get_transaction_by_id`) — full nesting:
-  category object, all participants each with a full user object, optional
-  source SMS and processing logs. Used for `GET /transactions/{id}`.
+  category object, all participants each with a full user object, plus
+  `processed_by` and the processing logs. Used for `GET /transactions/{id}`.
 - **List view** (`api_response_list_transactions_by_user`) — flattened,
   lightweight: only `category_code` (string, not full object) and a single
   `counterparty` field (the *other* participant relative to the requested

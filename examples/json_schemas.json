@@ -10,7 +10,6 @@
         "full_name": { "type": "string", "maxLength": 100 },
         "phone_number": { "type": "string", "maxLength": 15 },
         "user_category": { "type": "string", "enum": ["CUSTOMER", "AGENT", "MERCHANT"] },
-        "national_id_masked": { "type": ["string", "null"], "maxLength": 20 },
         "created_at": { "type": "string", "format": "date-time" }
       },
       "required": ["user_id", "full_name", "phone_number", "user_category"]
@@ -82,25 +81,20 @@
       "description": "A confirmed, failed, or reversed MoMo transaction. Category and participants are nested in for API convenience (denormalized on read, normalized on write — see sql_to_json_mapping.md).",
       "properties": {
         "transaction_id": { "type": "integer", "description": "PK, Transactions.transaction_id" },
-        "financial_tx_id": { "type": ["string", "null"], "maxLength": 30 },
-        "external_tx_id": { "type": ["string", "null"], "maxLength": 30 },
         "amount": { "type": "number", "exclusiveMinimum": 0 },
+        "transaction_time": { "type": "string", "format": "date-time" },
+        "processed_by": { "type": ["string", "null"], "maxLength": 30, "description": "SYSTEM, AGENT, or agent name from the SMS" },
         "fee": { "type": "number", "minimum": 0 },
         "balance_after": { "type": ["number", "null"] },
-        "transaction_date": { "type": "string", "format": "date-time" },
         "status": { "type": "string", "enum": ["COMPLETED", "FAILED", "REVERSED"] },
         "category": { "$ref": "#/schemas/TransactionCategory" },
         "participants": {
           "type": "array",
           "items": { "$ref": "#/schemas/Participant" },
           "minItems": 1
-        },
-        "source_sms": {
-          "description": "Nested for traceability; omitted from lightweight list responses",
-          "oneOf": [ { "$ref": "#/schemas/RawSMSLog" }, { "type": "null" } ]
         }
       },
-      "required": ["transaction_id", "amount", "fee", "transaction_date", "status", "category", "participants"]
+      "required": ["transaction_id", "amount", "transaction_time", "status", "category", "participants"]
     }
   },
 
@@ -111,7 +105,6 @@
       "full_name": "Abebe Chala Chebudie",
       "phone_number": "250795963036",
       "user_category": "CUSTOMER",
-      "national_id_masked": "36521838",
       "created_at": "2024-05-01T00:00:00Z"
     },
 
@@ -142,12 +135,11 @@
 
     "simple_transaction_example": {
       "transaction_id": 2,
-      "financial_tx_id": "73214484437",
-      "external_tx_id": null,
       "amount": 1000.00,
+      "transaction_time": "2024-05-10T16:31:39Z",
+      "processed_by": "SYSTEM",
       "fee": 0.00,
       "balance_after": 1000.00,
-      "transaction_date": "2024-05-10T16:31:39Z",
       "status": "COMPLETED",
       "category": {
         "category_id": 3,
@@ -162,14 +154,13 @@
     },
 
     "complex_transaction_full_example": {
-      "_comment": "This is the required 'complex transaction JSON with all related data' — an agent withdrawal, 3-party transaction (sender + agent), including its full category, both participants with full user detail, and full source SMS + processing log for end-to-end traceability.",
+      "_comment": "This is the required 'complex transaction JSON with all related data' — an agent withdrawal, 3-party transaction (sender + agent), including its full category, both participants with full user detail, and the ETL processing log for traceability.",
       "transaction_id": 5,
-      "financial_tx_id": null,
-      "external_tx_id": null,
       "amount": 20000.00,
+      "transaction_time": "2024-11-23T13:23:44Z",
+      "processed_by": "AGENT",
       "fee": 0.00,
       "balance_after": null,
-      "transaction_date": "2024-11-23T13:23:44Z",
       "status": "COMPLETED",
       "category": {
         "category_id": 7,
@@ -187,7 +178,6 @@
             "full_name": "Abebe Chala Chebudie",
             "phone_number": "250795963036",
             "user_category": "CUSTOMER",
-            "national_id_masked": "36521838",
             "created_at": "2024-05-01T00:00:00Z"
           }
         },
@@ -199,18 +189,10 @@
             "full_name": "Agent Sophia",
             "phone_number": "250790777779",
             "user_category": "AGENT",
-            "national_id_masked": null,
             "created_at": "2024-05-01T00:00:00Z"
           }
         }
       ],
-      "source_sms": {
-        "sms_id": 5,
-        "sender_address": "M-Money",
-        "raw_body": "You Abebe Chala CHEBUDIE (*********036) have via agent: Agent Sophia (250790777779), withdrawn 20000 RWF from your mobile money account: 36521838 at 2024-11-23 13:23:44.",
-        "sms_date": "2024-11-23T13:23:51Z",
-        "is_parsed": true
-      },
       "processing_logs": [
         {
           "log_id": 5,
@@ -228,10 +210,9 @@
       "success": true,
       "data": {
         "transaction_id": 5,
-        "financial_tx_id": null,
         "amount": 20000.00,
-        "fee": 0.00,
-        "transaction_date": "2024-11-23T13:23:44Z",
+        "transaction_time": "2024-11-23T13:23:44Z",
+        "processed_by": "AGENT",
         "status": "COMPLETED",
         "category": { "category_code": "AGENT_WITHDRAWAL", "category_name": "Agent Cash Withdrawal" },
         "participants": [
@@ -251,7 +232,7 @@
           "category_code": "INCOMING_MONEY",
           "amount": 2000.00,
           "fee": 0.00,
-          "transaction_date": "2024-05-10T16:30:51Z",
+          "transaction_time": "2024-05-10T16:30:51Z",
           "status": "COMPLETED",
           "counterparty": { "full_name": "Jane Smith", "participant_role": "SENDER" }
         },
@@ -260,7 +241,7 @@
           "category_code": "MERCHANT_PAYMENT",
           "amount": 1000.00,
           "fee": 0.00,
-          "transaction_date": "2024-05-10T16:31:39Z",
+          "transaction_time": "2024-05-10T16:31:39Z",
           "status": "COMPLETED",
           "counterparty": { "full_name": "Jane Smith", "participant_role": "RECEIVER" }
         },
@@ -269,7 +250,7 @@
           "category_code": "TRANSFER_SEND",
           "amount": 10000.00,
           "fee": 100.00,
-          "transaction_date": "2024-05-11T20:34:47Z",
+          "transaction_time": "2024-05-11T20:34:47Z",
           "status": "COMPLETED",
           "counterparty": { "full_name": "Samuel Carter", "participant_role": "RECEIVER" }
         }

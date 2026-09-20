@@ -10,7 +10,7 @@
 INSERT INTO Users (full_name, phone_number, user_category)
 VALUES ('David Mugisha', '250788123456', 'CUSTOMER');
 
-INSERT INTO Transactions (category_id, amount, fee, balance_after, transaction_date, status)
+INSERT INTO Transactions (category_id, amount, fee, balance_after, transaction_time, status)
 VALUES ((SELECT category_id FROM Transaction_Categories WHERE category_code='BUNDLE_PURCHASE'),
         1500.00, 0.00, 5000.00, '2025-02-01 10:00:00', 'COMPLETED');
 SET @test_tx_id = LAST_INSERT_ID();
@@ -47,7 +47,7 @@ FROM Transaction_Participants
 WHERE transaction_id NOT IN (SELECT transaction_id FROM Transactions);
 
 -- ---------- CONSTRAINT ENFORCEMENT TESTS (each of these should fail/reject) ----------
-INSERT INTO Transactions (category_id, amount, fee, transaction_date)
+INSERT INTO Transactions (category_id, amount, fee, transaction_time)
 VALUES (1, -500.00, 0.00, '2025-02-01 10:00:00');            -- violates chk_tx_amount_positive
 -- This test reuses Jane Smith's real phone number under a fake name
 -- ("Fake Jane"), confirming that uq_users_phone blocks duplicates by
@@ -56,4 +56,10 @@ INSERT INTO Users (full_name, phone_number)
 VALUES ('Fake Jane', '250789013000');                        -- violates uq_users_phone
 
 INSERT INTO Transaction_Participants (transaction_id, user_id, participant_role)
-VALUES (1, 1, 'BYSTANDER');                                  -- violates ENUM/participant_role constraint
+VALUES (1, 1, 'BYSTANDER');                                  -- violates chk_participant_role
+
+-- Reuses an existing user in the same transaction under a different role:
+-- the pair (transaction_id, user_id) already exists, so this is rejected
+-- regardless of role. Confirms no duplicate participation in one transaction.
+INSERT INTO Transaction_Participants (transaction_id, user_id, participant_role)
+VALUES (1, 1, 'SENDER');                                    -- violates uq_participant_tx_user

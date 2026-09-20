@@ -91,7 +91,7 @@ BEFORE DELETE ON Transactions
 FOR EACH ROW
 BEGIN
     INSERT INTO System_Logs (related_sms_id, process_step, status, message)
-    VALUES (OLD.source_sms_id, 'DELETE_TRANSACTION', 'SUCCESS',
+    VALUES (NULL, 'DELETE_TRANSACTION', 'SUCCESS',
             CONCAT('Transaction ', OLD.transaction_id, ' (amount ', OLD.amount, ') deleted at ', NOW()));
 END$$
 DELIMITER ;
@@ -104,5 +104,27 @@ DELIMITER ;
 -- chk_tx_fee_nonnegative     : Transactions.fee must be >= 0
 -- chk_users_phone_len        : Users.phone_number must be >= 6 characters
 -- uq_users_phone             : phone_number must be unique per user
--- uq_tx_financial_id         : financial_tx_id must be unique (no duplicate MTN TxId)
--- uq_participant_role        : a user cannot hold the same role twice on one transaction
+-- uq_participant_tx_user     : a user can participate in one transaction only once
+--
+-- ---------------------------------------------------------------------
+-- UNIQUE RULES / CONSTRAINTS (mapped to this schema)
+-- Each requirement below is enforced by the named object in
+-- database_setup.sql — see erd_design_rationale.md / design document.
+-- ---------------------------------------------------------------------
+-- 1. Unique users
+--    PRIMARY KEY (user_id) + UNIQUE uq_users_phone (phone_number)
+-- 2. Valid transaction amounts
+--    chk_tx_amount_positive  : amount > 0
+-- 3. Valid transaction status
+--    chk_tx_status           : status IN ('COMPLETED','FAILED','REVERSED')
+-- 4. Valid participant roles
+--    chk_participant_role    : participant_role IN ('SENDER','RECEIVER','AGENT')
+-- 5. Valid log levels
+--    chk_log_status          : System_Logs.status IN ('SUCCESS','FAILED')
+-- 6. Existing relationships (every FK targets an existing row)
+--    fk_tx_category          : Transactions.category_id    -> Transaction_Categories
+--    fk_participant_tx       : Transaction_Participants.transaction_id -> Transactions
+--    fk_participant_user     : Transaction_Participants.user_id -> Users
+--    fk_log_sms              : System_Logs.related_sms_id  -> Raw_SMS_Log
+-- 7. No duplicate participation
+--    uq_participant_tx_user  : UNIQUE (transaction_id, user_id)

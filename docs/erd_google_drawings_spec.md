@@ -19,8 +19,7 @@ RAW_SMS_LOG  ---(1:M)---  SYSTEM_LOGS
 - PK user_id — INT
 - full_name — VARCHAR(100)
 - phone_number — VARCHAR(15)
-- user_category — ENUM('CUSTOMER','AGENT','MERCHANT')
-- national_id_masked — VARCHAR(20)
+- user_category — VARCHAR(20) — CHECK (CUSTOMER/AGENT/MERCHANT)
 - created_at — DATETIME
 
 **TRANSACTION_CATEGORIES**
@@ -32,21 +31,19 @@ RAW_SMS_LOG  ---(1:M)---  SYSTEM_LOGS
 
 **TRANSACTIONS**
 - PK transaction_id — INT
-- FK category_id — INT
-- financial_tx_id — VARCHAR(30)
-- external_tx_id — VARCHAR(30)
 - amount — DECIMAL(12,2)
+- transaction_time — DATETIME
+- processed_by — VARCHAR(30)
+- status — VARCHAR(20) — CHECK (COMPLETED/FAILED/REVERSED)
+- FK category_id — INT
 - fee — DECIMAL(10,2)
 - balance_after — DECIMAL(12,2)
-- transaction_date — DATETIME
-- status — ENUM('COMPLETED','FAILED','REVERSED')
-- FK source_sms_id — INT
 
 **TRANSACTION_PARTICIPANTS** (junction table)
 - PK participant_id — INT
 - FK transaction_id — INT
 - FK user_id — INT
-- participant_role — ENUM('SENDER','RECEIVER','AGENT')
+- participant_role — VARCHAR(20) — CHECK (SENDER/RECEIVER/AGENT)
 
 **RAW_SMS_LOG**
 - PK sms_id — INT
@@ -59,7 +56,7 @@ RAW_SMS_LOG  ---(1:M)---  SYSTEM_LOGS
 - PK log_id — INT
 - FK related_sms_id — INT
 - process_step — VARCHAR(40)
-- status — ENUM('SUCCESS','FAILED')
+- status — VARCHAR(10) — CHECK (SUCCESS/FAILED)
 - message — VARCHAR(255)
 - logged_at — DATETIME
 
@@ -70,7 +67,6 @@ RAW_SMS_LOG  ---(1:M)---  SYSTEM_LOGS
 | TRANSACTION_CATEGORIES | TRANSACTIONS | 1 : M | one category, many transactions |
 | TRANSACTIONS | TRANSACTION_PARTICIPANTS | 1 : M | one transaction, many participant rows |
 | USERS | TRANSACTION_PARTICIPANTS | 1 : M | one user, many participant rows → together these two 1:M lines resolve the Users↔Transactions M:N |
-| RAW_SMS_LOG | TRANSACTIONS | 1 : 0..1 | not every SMS becomes a transaction (e.g. OTPs) |
 | RAW_SMS_LOG | SYSTEM_LOGS | 1 : M | one SMS can log multiple ETL steps/errors |
 
 Color suggestion (optional, matches generated PNG): dark navy header bars for lookup/log tables, deep blue for TRANSACTIONS, purple for the junction table — makes the M:N resolution visually obvious at a glance.

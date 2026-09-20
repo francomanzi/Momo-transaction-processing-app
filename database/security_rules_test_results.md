@@ -59,5 +59,6 @@ table.
 
 ## Rule 5 — Accuracy constraints (recap, already proven in `crud_test_results.md`)
 `chk_tx_amount_positive`, `chk_tx_fee_nonnegative`, `chk_users_phone_len`,
-`uq_users_phone`, `uq_tx_financial_id`, and `uq_participant_role` were all
-exercised and confirmed working during the CRUD test pass.
+`chk_user_category`, `chk_tx_status`, `chk_participant_role`, `chk_log_status`,
+`uq_users_phone`, and `uq_participant_tx_user` were all exercised and confirmed
+working during the CRUD test pass.

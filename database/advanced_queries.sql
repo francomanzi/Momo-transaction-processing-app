@@ -28,7 +28,7 @@ ORDER BY total_received DESC
 LIMIT 5;
 
 -- 3. Total fees paid by the account owner, by month
-SELECT DATE_FORMAT(t.transaction_date, '%Y-%m') AS month,
+SELECT DATE_FORMAT(t.transaction_time, '%Y-%m') AS month,
        SUM(t.fee) AS total_fees,
        COUNT(*) AS tx_count
 FROM Transactions t
