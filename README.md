@@ -135,9 +135,6 @@ mysql -u root -p momo_sms_system < database/crud_test_queries.sql
 | `momo_etl` | `Maureen123!` | INSERT/UPDATE/SELECT (no DELETE) |
 | `momo_admin` | `Maureen123!` | Full control |
 
-> **Note:** `security_rules.sql` starts by recreating these users for
-> idempotence; if a user already exists in your server it is dropped first
-> only when it is owned by this script's marker comment.
 
 ## Scrum / Task Board
 
