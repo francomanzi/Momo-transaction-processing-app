@@ -20,6 +20,51 @@ delivers:
 The Week-1 scaffolding (`etl/`, `api/`, `tests/`) is reserved for later
 weeks of the project.
 
+## Week 3 — REST API (current)
+
+The MoMo SMS data is now exposed through a secure REST API built with plain
+Python (`http.server`). It provides CRUD endpoints protected by Basic
+Authentication, a JSON data set parsed from `modified_sms_v2.xml`, and a
+data-structures & algorithms comparison (linear search vs dictionary lookup).
+
+See **`docs/api_docs.md`** for the full API documentation and
+**`docs/api_design_report.pdf`** for the PDF report.
+
+| Assignment task | Where |
+|---|---|
+| 1. Parse XML → JSON | `dsa/parse_xml.py` (→ `data/modified_sms_v2.json`) |
+| 2. CRUD endpoints (GET/POST/PUT/DELETE) | `api/app.py` |
+| 3. Basic Auth + 401 on bad credentials | `api/app.py`, explained in `docs/api_docs.md` |
+| 4. API documentation | `docs/api_docs.md` |
+| 5. DSA: linear search vs dictionary lookup | `dsa/search_compare.py` (20+ records, results in `data/logs/dsa_results.txt`) |
+| 6. Curl test evidence | `screenshots/` |
+| PDF report | `docs/api_design_report.pdf` |
+
+### Setup & run (Week 3)
+
+```bash
+# 1. Create the parsed data (only needed once)
+python -m dsa.parse_xml        # -> data/modified_sms_v2.json (1,691 records)
+
+# 2. Run the DSA comparison (optional)
+python -m dsa.search_compare
+
+# 3. Start the API (default http://127.0.0.1:8000)
+python api/app.py
+
+# 4. Test it with curl
+curl -u admin:'Maureen123!' http://127.0.0.1:8000/transactions
+curl -i -u admin:'Maureen123!' -X POST http://127.0.0.1:8000/transactions \
+  -H 'Content-Type: application/json' -d '{"amount":500.0}'
+```
+
+API credentials default to **`admin` / `Maureen123!`** and can be overridden
+with the `API_USER` and `API_PASS` environment variables.
+
+> **Note:** `data/` is git-ignored, so `modified_sms_v2.xml` (1,691 MTN MoMo
+> SMS records) and the parsed JSON are not committed. Copy the assignment file
+> into `data/modified_sms_v2.xml` before running the parser.
+
 ## Team Members
 
 | Name | GitHub Username | Role |
@@ -99,8 +144,13 @@ System_Logs ────────────┐
 ├── examples/
 │   ├── json_schemas.json        # JSON Schema for every entity + complex transaction
 │   └── sql_to_json_mapping.md   # SQL→JSON serialization guide
+├── api/
+│   └── app.py                   # Week-3 REST API (http.server + Basic Auth + CRUD)
+├── dsa/
+│   ├── parse_xml.py             # Week-3 XML → JSON parsing
+│   └── search_compare.py        # Week-3 linear search vs dictionary lookup
+├── screenshots/                 # Week-3 curl test evidence
 ├── etl/                        # Week-1 scaffolding (implementation in a later week)
-├── api/                        # Week-1 scaffolding
 ├── tests/                      # Week-1 scaffolding
 ├── scripts/
 ├── web/
