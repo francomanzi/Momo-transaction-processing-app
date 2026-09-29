@@ -1,0 +1,10 @@
+==== 6. PUT /transactions/1693 (update, expect 200) ====
+$ curl -i -u admin:'Maureen123!' -X PUT http://127.0.0.1:8000/transactions/1693 -H 'Content-Type: application/json' -d '{"amount":750.0,"status":"1"}'
+
+HTTP/1.0 200 OK
+Server: MoMoAPI/1.0 Python/3.14.6
+Date: Mon, 28 Sep 2026 09:32:45 GMT
+Content-Type: application/json
+Content-Length: 81
+
+{"body": "posted twice for put test", "id": 1693, "amount": 750.0, "status": "1"}

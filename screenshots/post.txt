@@ -1,0 +1,10 @@
+==== 5. POST /transactions (add a new record, expect 201) ====
+$ curl -i -u admin:'Maureen123!' -X POST http://127.0.0.1:8000/transactions -H 'Content-Type: application/json' -d '{"address":"M-Money","body":"You have received 500 RWF from Test Sender on your mobile money account","amount":500.0}'
+
+HTTP/1.0 201 Created
+Server: MoMoAPI/1.0 Python/3.14.6
+Date: Mon, 28 Sep 2026 09:32:45 GMT
+Content-Type: application/json
+Content-Length: 134
+
+{"address": "M-Money", "body": "You have received 500 RWF from Test Sender on your mobile money account", "amount": 500.0, "id": 1692}

@@ -1,0 +1,24 @@
+==== 1. GET /transactions (valid credentials) ====
+$ curl -i -u admin:"Maureen123!" http://127.0.0.1:8000/transactions
+
+HTTP/1.0 200 OK
+Server: MoMoAPI/1.0 Python/3.14.6
+Date: Mon, 28 Sep 2026 09:32:59 GMT
+Content-Type: application/json
+Content-Length: 721181
+
+record count: 1692
+
+first record:
+{
+  "id": 1,
+  "address": "M-Money",
+  "date": "1715351458724",
+  "readable_date": "10 May 2024 4:30:58 PM",
+  "type": "1",
+  "status": "-1",
+  "body": "You have received 2000 RWF from Jane Smith (*********013) on your mobile money account at 2024-05-10 16:30:51. Message from sender: . Your new balance:2000 RWF. Financial Transaction Id: 76662021700.",
+  "contact_name": "(Unknown)",
+  "service_center": "+250788110381",
+  "amount": 2000.0
+}
