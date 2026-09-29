@@ -69,9 +69,8 @@ with the `API_USER` and `API_PASS` environment variables.
 
 | Name | GitHub Username | Role |
 |------|-----------------|------|
-| [Divin Franco Manzi] | [@francomanzi] | System Architecture / Diagram |
-| [Peace Maureen Umutesi] | [@umaureen] | Scrum Lead |
-| [Alda Gatakokabasinga] | [@alda_gatako] | Project Coordinator |
+| [Divin Franco Manzi] | [@francomanzi] | System Architecture / Diagram / API |
+| [Peace Maureen Umutesi] | [@umaureen] | Scrum Lead / Docs & Testing |
 
 
 These match the commit authorship in Git history.
