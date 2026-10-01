@@ -160,7 +160,7 @@ System_Logs ────────────┐
 
 ### 1. Prerequisites
 
-- MySQL 8.0+ (developed and verified on MySQL 26.7)
+- MySQL 8.0+ 
 
 ### 2. Set up the database
 
