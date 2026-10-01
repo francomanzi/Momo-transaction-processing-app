@@ -1,24 +1,10 @@
--- =====================================================================
--- MoMo SMS Data Processing System — Database Setup
--- Engine: MySQL 8.0+
--- File: database/database_setup.sql
---
--- Contents:
---   1. Database creation
---   2. Table DDL (Users, Transaction_Categories, Raw_SMS_Log,
---      Transactions, Transaction_Participants, System_Logs)
---   3. Indexes for performance
---   4. Sample data (5+ rows per main table, drawn from modified_sms_v2.xml)
--- =====================================================================
+
 
 DROP DATABASE IF EXISTS momo_sms_system;
 CREATE DATABASE momo_sms_system CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE momo_sms_system;
 
--- ---------------------------------------------------------------------
--- 1. USERS
--- Sender / receiver / agent / merchant identities extracted from SMS text
--- ---------------------------------------------------------------------
+
 CREATE TABLE Users (
     user_id             INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Unique ID for a person/agent/merchant found in the SMS text',
     full_name           VARCHAR(100) NOT NULL COMMENT 'Name as it appears in the SMS body',
@@ -31,10 +17,7 @@ CREATE TABLE Users (
     CONSTRAINT chk_user_category CHECK (user_category IN ('CUSTOMER','AGENT','MERCHANT'))
 ) ENGINE=InnoDB COMMENT='Customers, agents and merchants referenced by MoMo transactions';
 
--- ---------------------------------------------------------------------
--- 2. TRANSACTION_CATEGORIES
--- Lookup table: keeps categorization logic data-driven, not hardcoded
--- ---------------------------------------------------------------------
+
 CREATE TABLE Transaction_Categories (
     category_id     INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Unique ID for a transaction category',
     category_code   VARCHAR(30)  NOT NULL COMMENT 'Machine-readable code used by the ETL parser',
@@ -44,11 +27,7 @@ CREATE TABLE Transaction_Categories (
     CONSTRAINT uq_category_code UNIQUE (category_code)
 ) ENGINE=InnoDB COMMENT='Reference list of MoMo transaction types (payment, transfer, deposit, etc.)';
 
--- ---------------------------------------------------------------------
--- 3. RAW_SMS_LOG
--- Source-of-truth raw records before ETL parsing. Not every row becomes
--- a transaction (e.g. OTP messages), hence the is_parsed flag.
--- ---------------------------------------------------------------------
+
 CREATE TABLE Raw_SMS_Log (
     sms_id          INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Unique ID for a raw SMS record',
     sender_address  VARCHAR(30) NOT NULL COMMENT 'SMS sender address, e.g. M-Money',
@@ -57,10 +36,7 @@ CREATE TABLE Raw_SMS_Log (
     is_parsed       BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'TRUE once ETL has successfully extracted a transaction'
 ) ENGINE=InnoDB COMMENT='Immutable staging table holding every ingested SMS prior to parsing';
 
--- ---------------------------------------------------------------------
--- 4. TRANSACTIONS
--- Core fact table: one confirmed MoMo transaction
--- ---------------------------------------------------------------------
+
 CREATE TABLE Transactions (
     transaction_id      INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Unique ID for a transaction',
     amount              DECIMAL(12,2) NOT NULL COMMENT 'Transaction amount in RWF',
@@ -78,11 +54,7 @@ CREATE TABLE Transactions (
     CONSTRAINT chk_tx_status CHECK (status IN ('COMPLETED','FAILED','REVERSED'))
 ) ENGINE=InnoDB COMMENT='Core fact table of confirmed/failed/reversed MoMo transactions';
 
--- ---------------------------------------------------------------------
--- 5. TRANSACTION_PARTICIPANTS  (junction table — resolves M:N)
--- A transaction can involve multiple users in different roles
--- (sender, receiver, agent); a user appears across many transactions.
--- ---------------------------------------------------------------------
+
 CREATE TABLE Transaction_Participants (
     participant_id      INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Unique ID for a participation record',
     transaction_id      INT NOT NULL COMMENT 'FK -> Transactions.transaction_id',
@@ -96,10 +68,7 @@ CREATE TABLE Transaction_Participants (
     CONSTRAINT chk_participant_role CHECK (participant_role IN ('SENDER','RECEIVER','AGENT'))
 ) ENGINE=InnoDB COMMENT='Junction table resolving the M:N relationship between Users and Transactions';
 
--- ---------------------------------------------------------------------
--- 6. SYSTEM_LOGS
--- ETL pipeline observability: one row per processing step/outcome
--- ---------------------------------------------------------------------
+
 CREATE TABLE System_Logs (
     log_id          INT AUTO_INCREMENT PRIMARY KEY COMMENT 'Unique ID for a log entry',
     related_sms_id  INT NULL COMMENT 'FK -> Raw_SMS_Log.sms_id, the record being processed',
@@ -112,9 +81,7 @@ CREATE TABLE System_Logs (
     CONSTRAINT chk_log_status CHECK (status IN ('SUCCESS','FAILED'))
 ) ENGINE=InnoDB COMMENT='ETL pipeline processing log for traceability and debugging';
 
--- =====================================================================
--- INDEXES — strategic, beyond what PK/UNIQUE already provide
--- =====================================================================
+
 CREATE INDEX idx_users_phone            ON Users(phone_number);
 CREATE INDEX idx_tx_time                ON Transactions(transaction_time);
 CREATE INDEX idx_tx_category            ON Transactions(category_id);
@@ -124,11 +91,7 @@ CREATE INDEX idx_participants_tx        ON Transaction_Participants(transaction_
 CREATE INDEX idx_logs_status            ON System_Logs(status);
 CREATE INDEX idx_logs_sms               ON System_Logs(related_sms_id);
 
--- =====================================================================
--- SAMPLE DATA — drawn from modified_sms_v2.xml
--- =====================================================================
 
--- Users (account owner, 4 known contacts, 2 agents, 2 merchants) = 9 rows
 INSERT INTO Users (full_name, phone_number, user_category) VALUES
 ('Abebe Chala Chebudie', '250795963036', 'CUSTOMER'),   -- the account owner
 ('Jane Smith',           '250789013000', 'CUSTOMER'),

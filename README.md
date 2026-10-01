@@ -44,13 +44,13 @@ Check **`docs/api_docs.md`** for the full API documentation and
 
 ```bash
 # 1. Create the parsed data (only needed once)
-python -m dsa.parse_xml        # -> data/modified_sms_v2.json (1,691 records)
+python3 -m dsa.parse_xml        # -> data/modified_sms_v2.json (1,691 records)
 
 # 2. Run the DSA comparison (optional)
-python -m dsa.search_compare
+python3 -m dsa.search_compare
 
 # 3. Start the API (default http://127.0.0.1:8000)
-python api/app.py
+python3 api/app.py
 
 # 4. Test it with curl
 curl -u admin:'Maureen123!' http://127.0.0.1:8000/transactions

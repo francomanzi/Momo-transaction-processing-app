@@ -1,9 +1,4 @@
-"""Compare linear search vs dictionary lookup for finding transactions by id.
 
-Requirement: measure/compare efficiency for at least 20 records.
-We search for the first 20 ids and repeat over several runs so the
-timing difference is clearly measurable.
-"""
 
 import os
 import random

@@ -1,18 +1,4 @@
-"""Simple REST API for MoMo SMS transactions.
 
-Plain Python http.server with Basic Authentication and CRUD endpoints:
-
-    GET    /transactions
-    GET    /transactions/{id}
-    POST   /transactions
-    PUT    /transactions/{id}
-    DELETE /transactions/{id}
-
-Credentials come from the environment (API_USER / API_PASS) and default
-to admin / Maureen123!.
-
-Run:  python api/app.py           (serves on 127.0.0.1:8000)
-"""
 
 import base64
 import json

@@ -1,8 +1,4 @@
-"""Parse modified_sms_v2.xml into a list of JSON transaction objects.
 
-Each SMS record keeps its key fields from the XML plus a simple
-amount extracted from the body text.
-"""
 
 import json
 import os
