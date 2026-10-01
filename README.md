@@ -20,14 +20,14 @@ delivers:
 The Week-1 scaffolding (`etl/`, `api/`, `tests/`) is reserved for later
 weeks of the project.
 
-## Week 3 — REST API (current)
+## Week 3  REST API 
 
 The MoMo SMS data is now exposed through a secure REST API built with plain
 Python (`http.server`). It provides CRUD endpoints protected by Basic
 Authentication, a JSON data set parsed from `modified_sms_v2.xml`, and a
 data-structures & algorithms comparison (linear search vs dictionary lookup).
 
-See **`docs/api_docs.md`** for the full API documentation and
+Check **`docs/api_docs.md`** for the full API documentation and
 **`docs/api_design_report.pdf`** for the PDF report.
 
 | Assignment task | Where |
@@ -129,11 +129,11 @@ System_Logs ────────────┐
 ```
 ├── README.md
 ├── database/
-│   ├── database_setup.sql       # DDL + constraints + indexes + sample data (5+/table)
-│   ├── security_rules.sql       # least-privilege users, masking view, triggers
-│   ├── advanced_queries.sql     # analytical queries for the design document
-│   ├── crud_test_queries.sql    # CRUD + constraint enforcement tests
-│   └── *_results.md             # documented query outputs
+│   ├── database_setup.sql      
+│   ├── security_rules.sql       
+│   ├── advanced_queries.sql    
+│   ├── crud_test_queries.sql    
+│   └── *_results.md             
 ├── docs/
 │   ├── erd_diagram.png
 │   ├── erd_design_rationale.md
@@ -141,19 +141,19 @@ System_Logs ────────────┐
 │   ├── data_dictionary.md
 │   └── design_document.pdf
 ├── examples/
-│   ├── json_schemas.json        # JSON Schema for every entity + complex transaction
-│   └── sql_to_json_mapping.md   # SQL→JSON serialization guide
+│   ├── json_schemas.json        
+│   └── sql_to_json_mapping.md  
 ├── api/
-│   └── app.py                   # Week-3 REST API (http.server + Basic Auth + CRUD)
+│   └── app.py                   
 ├── dsa/
-│   ├── parse_xml.py             # Week-3 XML → JSON parsing
-│   └── search_compare.py        # Week-3 linear search vs dictionary lookup
-├── screenshots/                 # Week-3 curl test evidence
-├── etl/                        # Week-1 scaffolding (implementation in a later week)
-├── tests/                      # Week-1 scaffolding
+│   ├── parse_xml.py             
+│   └── search_compare.py        
+├── screenshots/                
+├── etl/                        
+├── tests/                     
 ├── scripts/
 ├── web/
-└── requirements.txt            # reserved for later weeks
+└── requirements.txt            
 ```
 
 ## Getting Started
@@ -166,7 +166,7 @@ System_Logs ────────────┐
 
 ```bash
 mysql -u root -p < database/database_setup.sql   # creates momo_sms_system + sample data
-mysql -u root -p < database/security_rules.sql   # app users, masking view, triggers
+mysql -u root -p < database/security_rules.sql   # app users, triggers
 ```
 
 ### 3. Explore the data

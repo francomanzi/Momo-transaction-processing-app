@@ -1,4 +1,4 @@
-# Database Data Dictionary — `momo_sms_system`
+# Database Data Dictionary  `momo_sms_system`
 
 Engine: MySQL 8.0+ · Character set: `utf8mb4` / `utf8mb4_unicode_ci`
 

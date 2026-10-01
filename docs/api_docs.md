@@ -39,13 +39,13 @@ curl -u admin:'Maureen123!' http://127.0.0.1:8000/transactions
 
 ## Endpoints
 
-### `GET /transactions` — list all transactions
+### `GET /transactions`  list all transactions
 
 | | |
 |---|---|
 | **Method** | `GET` |
 | **Auth** | Required |
-| **Success** | `200 OK` — JSON array of all transactions |
+| **Success** | `200 OK`  JSON array of all transactions |
 
 Request:
 
@@ -72,7 +72,7 @@ Response (`200 OK`):
 ]
 ```
 
-### `GET /transactions/{id}` — view one transaction
+### `GET /transactions/{id}`  view one transaction
 
 | | |
 |---|---|
@@ -110,7 +110,7 @@ Error (`404 Not Found`):
 { "error": "transaction 99999 not found" }
 ```
 
-### `POST /transactions` — add a new transaction
+### `POST /transactions`  add a new transaction
 
 | | |
 |---|---|
@@ -144,7 +144,7 @@ Error (`400 Bad Request`):
 { "error": "body must be a valid JSON object" }
 ```
 
-### `PUT /transactions/{id}` — update an existing transaction
+### `PUT /transactions/{id}`  update an existing transaction
 
 | | |
 |---|---|
@@ -173,7 +173,7 @@ Response (`200 OK`):
 }
 ```
 
-### `DELETE /transactions/{id}` — delete a transaction
+### `DELETE /transactions/{id}`  delete a transaction
 
 | | |
 |---|---|
@@ -204,7 +204,7 @@ Response (`200 OK`): the deleted record is returned as JSON.
 
 ---
 
-## Setup & run
+## How to Setup & run
 
 ```bash
 # 1. Create the parsed data (only needed once)
